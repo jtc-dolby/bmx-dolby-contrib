@@ -195,6 +195,7 @@ public:
     void RegisterSoundTrackElement(uint32_t track_index, mxfKey element_key, uint8_t element_llen);
     void RegisterDataTrackElement(uint32_t track_index, mxfKey element_key, uint32_t constant_essence_len,
                                   uint32_t max_essence_len);
+    void RegisterISXDTrackElement(uint32_t track_index, mxfKey element_key);
 
     void PrepareWrite();
 

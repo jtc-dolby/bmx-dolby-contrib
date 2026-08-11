@@ -20,6 +20,7 @@ list(APPEND MXFpp_sources
     metadata/base/EventTrackBase.cpp
     metadata/base/FileDescriptorBase.cpp
     metadata/base/GenericDataEssenceDescriptorBase.cpp
+    metadata/base/ISXDDescriptorBase.cpp
     metadata/base/GenericDescriptorBase.cpp
     metadata/base/GenericPackageBase.cpp
     metadata/base/GenericPictureEssenceDescriptorBase.cpp
@@ -86,6 +87,7 @@ list(APPEND MXFpp_headers
     metadata/base/EventTrackBase.h
     metadata/base/FileDescriptorBase.h
     metadata/base/GenericDataEssenceDescriptorBase.h
+    metadata/base/ISXDDescriptorBase.h
     metadata/base/GenericDescriptorBase.h
     metadata/base/GenericPackageBase.h
     metadata/base/GenericPictureEssenceDescriptorBase.h

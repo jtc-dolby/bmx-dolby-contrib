@@ -59,6 +59,7 @@
 #include <bmx/essence_parser/RDD36EssenceParser.h>
 #include <bmx/essence_parser/J2CEssenceParser.h>
 #include <bmx/essence_parser/VC3EssenceParser.h>
+#include <bmx/essence_parser/ISXDEssenceParser.h>
 #include <bmx/essence_parser/VC2EssenceParser.h>
 #include <bmx/essence_parser/JXSEssenceParser.h>
 #include <bmx/essence_parser/RawEssenceReader.h>
@@ -858,6 +859,7 @@ static void usage(const char *cmd)
     printf("  --anc <name>            Raw ST 436 Ancillary data. Requires the --anc-const option or frame wrapped in KLV and the --klv option\n");
     printf("  --vbi <name>            Raw ST 436 Vertical Blanking Interval data. Requires the --vbi-const option or frame wrapped in KLV and the --klv option\n");
     printf("  --tt <manifest>         Manifest file containing Timed Text metadata\n");
+    printf("  --isxd <name|pattern>   Raw ISXD (SMPTE ST 2067-202) data input file or %%d file pattern\n");
     printf("\n\n");
     printf("Notes:\n");
     printf(" - filename pattern: Clip types producing a single output file may use a filename pattern with variables that get substituted\n");
@@ -4114,6 +4116,23 @@ int main(int argc, const char** argv)
             have_vbi = true;
             cmdln_index++;
         }
+        else if (strcmp(argv[cmdln_index], "--isxd") == 0)
+        {
+            if (cmdln_index + 1 >= argc)
+            {
+                usage(argv[0]);
+                fprintf(stderr, "Missing argument for input '%s'\n", argv[cmdln_index]);
+                return 1;
+            }
+            input.essence_type = ISXD;
+            if (strchr(argv[cmdln_index + 1], '%') != 0) {
+                input.file_pattern = argv[cmdln_index + 1];
+            } else {
+                input.filename = argv[cmdln_index + 1];
+            }
+            inputs.push_back(input);
+            cmdln_index++;
+        }
         else if (strcmp(argv[cmdln_index], "--tt") == 0)
         {
             if (cmdln_index + 1 >= argc)
@@ -5639,6 +5658,8 @@ int main(int argc, const char** argv)
                 case TIMED_TEXT:
                     clip_track->SetTimedTextSource(input->timed_text_manifest);
                     break;
+                case ISXD:
+                    break;
                 default:
                     BMX_ASSERT(false);
             }
@@ -5911,6 +5932,12 @@ int main(int argc, const char** argv)
                         input->raw_reader->SetFixedSampleSize(input->vbi_const_size);
                     break;
                 case TIMED_TEXT:
+                    break;
+                case ISXD:
+                    input->sample_sequence[0] = 1;
+                    input->sample_sequence_size = 1;
+                    input->raw_reader->SetEssenceParser(new ISXDEssenceParser());
+                    input->raw_reader->SetCheckMaxSampleSize(100000000);
                     break;
                 default:
                     BMX_ASSERT(false);

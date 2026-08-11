@@ -163,6 +163,7 @@ public:
     void RegisterAVCITrackElement(uint32_t track_index);
     void RegisterSoundTrackElement(uint32_t track_index);
     void RegisterDataTrackElement(uint32_t track_index, bool is_cbe);
+    void RegisterISXDTrackElement(uint32_t track_index, bool is_cbe);
 
     void PrepareWrite();
 

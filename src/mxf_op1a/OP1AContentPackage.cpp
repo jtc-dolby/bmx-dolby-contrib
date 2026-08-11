@@ -633,6 +633,21 @@ void OP1AContentPackageManager::RegisterSoundTrackElement(uint32_t track_index, 
     mSysMetaItemFlags |= SYS_META_SOUND_ITEM_FLAG;
 }
 
+void OP1AContentPackageManager::RegisterISXDTrackElement(uint32_t track_index, mxfKey element_key)
+{
+    BMX_ASSERT(mFrameWrapped);
+
+    OP1AContentPackageElement *element = new OP1AContentPackageElement(track_index,
+                                                                       OP1AContentPackageElement::DATA_ELEMENT,
+                                                                       element_key, mKAGSize, mMinLLen);
+    element->is_cbe = false;
+
+    mElements.push_back(element);
+    mElementTrackIndexMap[track_index] = element;
+
+    mSysMetaItemFlags |= SYS_META_DATA_ITEM_FLAG;
+}
+
 void OP1AContentPackageManager::RegisterDataTrackElement(uint32_t track_index, mxfKey element_key,
                                                          uint32_t constant_essence_len, uint32_t max_essence_len)
 {

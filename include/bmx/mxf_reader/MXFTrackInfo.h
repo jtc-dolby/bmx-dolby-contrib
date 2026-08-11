@@ -190,6 +190,13 @@ public:
     std::vector<VBIManifestElement> vbi_manifest;
     std::vector<ANCManifestElement> anc_manifest;
     TimedTextManifest *timed_text_manifest;
+
+    // ISXD (SMPTE ST 2067-202)
+    mxfUL descriptor_ul;
+    BMX_OPT_PROP_DECL(mxfUL, data_essence_coding);
+    bool is_isxd_descriptor;
+    std::string namespace_uri;
+    std::string root_element_key;
 };
 
 

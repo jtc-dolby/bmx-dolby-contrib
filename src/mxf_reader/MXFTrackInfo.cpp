@@ -323,6 +323,9 @@ MXFDataTrackInfo::MXFDataTrackInfo()
 {
     data_def = MXF_DATA_DDEF;
     timed_text_manifest = 0;
+    descriptor_ul = g_Null_UL;
+    BMX_OPT_PROP_DEFAULT(data_essence_coding, g_Null_UL);
+    is_isxd_descriptor = false;
 }
 
 MXFDataTrackInfo::~MXFDataTrackInfo()
@@ -350,6 +353,11 @@ MXFTrackInfo* MXFDataTrackInfo::Clone() const
     if (timed_text_manifest) {
         clone->timed_text_manifest = new TimedTextManifest(*timed_text_manifest);
     }
+    clone->descriptor_ul = descriptor_ul;
+    BMX_OPT_PROP_COPY(clone->data_essence_coding, data_essence_coding);
+    clone->is_isxd_descriptor = is_isxd_descriptor;
+    clone->namespace_uri = namespace_uri;
+    clone->root_element_key = root_element_key;
 
     return clone;
 }
