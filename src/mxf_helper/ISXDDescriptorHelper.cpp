@@ -87,7 +87,7 @@ bool ISXDDescriptorHelper::IsSupported(EssenceType essence_type)
 ISXDDescriptorHelper::ISXDDescriptorHelper()
 : DataMXFDescriptorHelper()
 {
-    mEssenceType = IAB;
+    mEssenceType = ISXD;
 }
 
 ISXDDescriptorHelper::~ISXDDescriptorHelper()

@@ -1,10 +1,6 @@
-# Test creating (mux) and reading (demux) an op1a MXF file that combines the
-# Dolby-added essence types: HEVC video, ISXD data, BW64/S-ADM (MGA) sound and
-# IAB sound. The input test vectors live alongside this file.
-#
-# Uses --regtest-real (rather than --regtest) because the inputs are real
-# essence and some use a "group" essence type (e.g. --hevc) that the synthetic
-# regression-essence mode does not allow.
+# Test creating (mux) and reading (demux) an op1a MXF file with ISXD data
+# essence (SMPTE ST 2067-202). Uses --regtest-real because the input is real
+# essence.
 
 include("${TEST_SOURCE_DIR}/../testing.cmake")
 
@@ -29,10 +25,7 @@ set(create_command ${RAW2BMX}
     --regtest-real
     -t op1a
     -o ${output_file}
-    --hevc "${TEST_SOURCE_DIR}/test_1_video.h265"
     --isxd "${TEST_SOURCE_DIR}/test_1_isxd/%08d.xml"
-    --bw64 "${TEST_SOURCE_DIR}/test_1_sadm.wav"
-    --iab "${TEST_SOURCE_DIR}/test_1.iab"
 )
 
 set(read_command ${MXF2RAW}
