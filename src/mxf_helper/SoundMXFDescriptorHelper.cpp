@@ -36,6 +36,7 @@
 #include <bmx/mxf_helper/SoundMXFDescriptorHelper.h>
 #include <bmx/mxf_helper/WaveMXFDescriptorHelper.h>
 #include <bmx/mxf_helper/MGAMXFDescriptorHelper.h>
+#include <bmx/mxf_helper/IABDescriptorHelper.h>
 #include <bmx/BMXTypes.h>
 #include <bmx/Utils.h>
 #include <bmx/BMXException.h>
@@ -86,6 +87,9 @@ EssenceType SoundMXFDescriptorHelper::IsSupported(FileDescriptor *file_descripto
     essence_type = MGAMXFDescriptorHelper::IsSupported(file_descriptor, alternative_ec_label);
     if (essence_type)
         return essence_type;
+    essence_type = IABDescriptorHelper::IsSupported(file_descriptor, alternative_ec_label);
+    if (essence_type)
+        return essence_type;
 
     return SOUND_ESSENCE;
 }
@@ -96,6 +100,8 @@ SoundMXFDescriptorHelper* SoundMXFDescriptorHelper::Create(FileDescriptor *file_
     SoundMXFDescriptorHelper *helper;
     if (WaveMXFDescriptorHelper::IsSupported(file_descriptor, alternative_ec_label))
         helper = new WaveMXFDescriptorHelper();
+    else if (IABDescriptorHelper::IsSupported(file_descriptor, alternative_ec_label))
+        helper = new IABDescriptorHelper();
     else
         helper = new SoundMXFDescriptorHelper();
 
@@ -112,6 +118,9 @@ bool SoundMXFDescriptorHelper::IsSupported(EssenceType essence_type)
             return true;
     }
 
+    if (essence_type == IAB)
+        return IABDescriptorHelper::IsSupported(essence_type);
+
     return WaveMXFDescriptorHelper::IsSupported(essence_type);
 }
 
@@ -122,6 +131,8 @@ MXFDescriptorHelper* SoundMXFDescriptorHelper::Create(EssenceType essence_type)
     SoundMXFDescriptorHelper *helper;
     if (WaveMXFDescriptorHelper::IsSupported(essence_type))
         helper = new WaveMXFDescriptorHelper();
+    else if (IABDescriptorHelper::IsSupported(essence_type))
+        helper = new IABDescriptorHelper();
     else
         helper = new SoundMXFDescriptorHelper();
     helper->SetEssenceType(essence_type);

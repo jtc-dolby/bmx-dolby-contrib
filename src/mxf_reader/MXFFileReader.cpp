@@ -2025,12 +2025,16 @@ void MXFFileReader::ProcessSoundDescriptor(FileDescriptor *file_descriptor, MXFS
         BMX_OPT_PROP_SET(sound_track_info->dial_norm, sound_descriptor->getDialNorm());
 
     WaveAudioDescriptor *wave_descriptor = dynamic_cast<WaveAudioDescriptor*>(file_descriptor);
+    IABDescriptor *iab_descriptor = dynamic_cast<IABDescriptor*>(file_descriptor);
     if (wave_descriptor) {
         sound_track_info->block_align = wave_descriptor->getBlockAlign();
         if (wave_descriptor->haveSequenceOffset())
             sound_track_info->sequence_offset = wave_descriptor->getSequenceOffset();
         if (wave_descriptor->haveChannelAssignment())
             sound_track_info->channel_assignment = wave_descriptor->getChannelAssignment();
+    } else if (iab_descriptor) {
+        // nothing to do yet
+        sound_track_info->isIabDescriptor = true;
     } else {
         if (sound_track_info->channel_count > 0) {
             sound_track_info->block_align = sound_track_info->channel_count *

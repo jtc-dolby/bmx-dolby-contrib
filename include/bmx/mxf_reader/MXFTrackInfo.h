@@ -136,6 +136,8 @@ public:
     BMX_OPT_PROP_DECL(int8_t, dial_norm);
     UL channel_assignment;
     std::vector<mxfpp::MCALabelSubDescriptor*> mca_labels;
+
+    bool isIabDescriptor;
 };
 
 
