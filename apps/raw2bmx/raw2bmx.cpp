@@ -68,6 +68,8 @@
 #include <bmx/essence_parser/FilePatternEssenceSource.h>
 #include <bmx/essence_parser/D10RawEssenceReader.h>
 #include <bmx/essence_parser/MPEG2AspectRatioFilter.h>
+#include <bmx/essence_parser/SADMEssenceParser.h>
+#include <bmx/essence_parser/BW64SADMEssenceSource.h>
 #include <bmx/mxf_helper/RDD36MXFDescriptorHelper.h>
 #include <bmx/wave/WaveFileIO.h>
 #include <bmx/wave/WaveFileChunk.h>
@@ -155,6 +157,7 @@ struct RawInput
     RawEssenceReader *raw_reader;
     WaveReader *wave_reader;
     KLVEssenceReader *klv_reader;
+    BW64SADMEssenceSource *sadm_source;
     uint32_t channel_count;
     TimedTextManifestParser *timed_text_manifest;
 
@@ -287,7 +290,20 @@ static bool open_raw_reader(RawInput *input)
     EssenceSource *essence_source;
 
     BMX_ASSERT(input->filename || input->file_pattern);
-    if (input->filename) {
+    if (input->essence_type == SADM) {
+        // S-ADM / MGA input is a BW64 file (ITU-R BS.2088). The source parses
+        // the <sxml> and <data> chunks and presents an ST 2127-1 MGA frame
+        // bitstream to the RawEssenceReader / SADMEssenceParser pipeline.
+        BW64SADMEssenceSource *bw64_source = new BW64SADMEssenceSource();
+        if (!bw64_source->Open(input->filename)) {
+            log_error("Failed to open BW64 S-ADM input file '%s': %s\n",
+                    input->filename, bw64_source->GetStrError().c_str());
+            delete bw64_source;
+            return false;
+        }
+        input->sadm_source = bw64_source;
+        essence_source = bw64_source;
+    } else if (input->filename) {
         FileEssenceSource *file_source = new FileEssenceSource();
         if (!file_source->Open(input->filename, input->file_start_offset)) {
             log_error("Failed to open input file '%s' at start offset %" PRId64 ": %s\n",
@@ -398,6 +414,7 @@ static void init_input(RawInput *input)
     BMX_OPT_PROP_DEFAULT(input->component_depth, 8);
     input->bits_per_sample = 16;
     input->channel_count = 1;
+    input->sadm_source = 0;
     BMX_OPT_PROP_DEFAULT(input->ref_image_edit_rate, g_Null_Rational);
     BMX_OPT_PROP_DEFAULT(input->ref_audio_align_level, 0);
 }
@@ -858,6 +875,7 @@ static void usage(const char *cmd)
     printf("  --anc <name>            Raw ST 436 Ancillary data. Requires the --anc-const option or frame wrapped in KLV and the --klv option\n");
     printf("  --vbi <name>            Raw ST 436 Vertical Blanking Interval data. Requires the --vbi-const option or frame wrapped in KLV and the --klv option\n");
     printf("  --tt <manifest>         Manifest file containing Timed Text metadata\n");
+    printf("  --bw64 <name>           BW64 file (ITU-R BS.2088) carrying Serial ADM (S-ADM) in the sxml chunk\n");
     printf("\n\n");
     printf("Notes:\n");
     printf(" - filename pattern: Clip types producing a single output file may use a filename pattern with variables that get substituted\n");
@@ -4114,6 +4132,19 @@ int main(int argc, const char** argv)
             have_vbi = true;
             cmdln_index++;
         }
+        else if (strcmp(argv[cmdln_index], "--bw64") == 0)
+        {
+            if (cmdln_index + 1 >= argc)
+            {
+                usage(argv[0]);
+                fprintf(stderr, "Missing argument for input '%s'\n", argv[cmdln_index]);
+                return 1;
+            }
+            input.essence_type = SADM;
+            input.filename = argv[cmdln_index + 1];
+            inputs.push_back(input);
+            cmdln_index++;
+        }
         else if (strcmp(argv[cmdln_index], "--tt") == 0)
         {
             if (cmdln_index + 1 >= argc)
@@ -4748,6 +4779,35 @@ int main(int argc, const char** argv)
                     // TODO: other parameters?
                 }
             }
+            else if (input->essence_type == SADM)
+            {
+                // Audio format comes from the BW64 <fmt > chunk (authoritative);
+                // the S-ADM frame rate is sampleRate / samplesPerFrame.
+                BMX_ASSERT(input->sadm_source);
+                uint32_t sample_rate    = input->sadm_source->GetSamplingRate();
+                uint32_t samples_frame  = input->sadm_source->GetSamplesPerFrame();
+
+                input->channel_count   = input->sadm_source->GetChannelCount();
+                input->sampling_rate.numerator   = (int32_t)sample_rate;
+                input->sampling_rate.denominator = 1;
+                input->bits_per_sample = input->sadm_source->GetBitsPerSample();
+
+                if (!frame_rate_set) {
+                    if (samples_frame > 0 && sample_rate % samples_frame == 0) {
+                        frame_rate.numerator   = (int32_t)(sample_rate / samples_frame);
+                        frame_rate.denominator = 1;
+                    } else if (samples_frame > 0) {
+                        frame_rate.numerator   = (int32_t)sample_rate;
+                        frame_rate.denominator = (int32_t)samples_frame;
+                    } else {
+                        log_warn("BW64 S-ADM has no samples-per-frame; using default frame rate %d/%d\n",
+                                 frame_rate.numerator, frame_rate.denominator);
+                    }
+                }
+
+                log_info("BW64 S-ADM: %u channels, %u Hz, %u-bit, %u samples/frame\n",
+                         input->channel_count, sample_rate, input->bits_per_sample, samples_frame);
+            }
         }
 
 
@@ -4826,6 +4886,8 @@ int main(int argc, const char** argv)
                 continue;
 
             if (input->essence_type == WAVE_PCM) {
+                have_sound = true;
+            } else if (input->essence_type == SADM) {
                 have_sound = true;
             } else if (input->essence_type != TIMED_TEXT) {  // timed text is in a separate container
                 sound_only_container = false;
@@ -5639,6 +5701,11 @@ int main(int argc, const char** argv)
                 case TIMED_TEXT:
                     clip_track->SetTimedTextSource(input->timed_text_manifest);
                     break;
+                case SADM:
+                    clip_track->SetSamplingRate(output_sound_info->sampling_rate);
+                    clip_track->SetQuantizationBits(output_sound_info->bits_per_sample);
+                    clip_track->SetChannelCount(input->channel_count);
+                    break;
                 default:
                     BMX_ASSERT(false);
             }
@@ -5912,6 +5979,23 @@ int main(int argc, const char** argv)
                     break;
                 case TIMED_TEXT:
                     break;
+                case SADM:
+                {
+                    input->sample_sequence[0] = 1;
+                    input->sample_sequence_size = 1;
+                    SADMEssenceParser *sadm_parser = new SADMEssenceParser();
+                    // Frame sizing does not need the S-ADM XML; supplying the
+                    // audio format lets compressed payloads be sized without
+                    // being decompressed.
+                    if (input->sadm_source) {
+                        sadm_parser->SetAudioInfo(input->sadm_source->GetChannelCount(),
+                                                  input->sampling_rate,
+                                                  input->sadm_source->GetBitsPerSample());
+                    }
+                    input->raw_reader->SetEssenceParser(sadm_parser);
+                    input->raw_reader->SetCheckMaxSampleSize(100000000);
+                    break;
+                }
                 default:
                     BMX_ASSERT(false);
             }

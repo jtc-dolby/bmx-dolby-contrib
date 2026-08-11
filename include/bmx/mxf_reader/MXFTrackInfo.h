@@ -136,6 +136,13 @@ public:
     BMX_OPT_PROP_DECL(int8_t, dial_norm);
     UL channel_assignment;
     std::vector<mxfpp::MCALabelSubDescriptor*> mca_labels;
+
+    bool isSADMDescriptor;
+
+    // s-ADM/MGA
+    uint16_t mgaSoundEssenceBlockAlign;
+    uint32_t mgaSoundEssenceAverageBytesPerSecond;
+    BMX_OPT_PROP_DECL(uint8_t, mgaSoundEssenceSequenceOffset);
 };
 
 

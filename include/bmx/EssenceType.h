@@ -155,6 +155,8 @@ typedef enum
     VBI_DATA,
     // Timed Text data
     TIMED_TEXT,
+    // Serial ADM
+    SADM,
 } EssenceType;
 
 

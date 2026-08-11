@@ -2025,12 +2025,21 @@ void MXFFileReader::ProcessSoundDescriptor(FileDescriptor *file_descriptor, MXFS
         BMX_OPT_PROP_SET(sound_track_info->dial_norm, sound_descriptor->getDialNorm());
 
     WaveAudioDescriptor *wave_descriptor = dynamic_cast<WaveAudioDescriptor*>(file_descriptor);
+    MGASoundEssenceDescriptor *sadm_descriptor = dynamic_cast<MGASoundEssenceDescriptor*>(file_descriptor);
     if (wave_descriptor) {
         sound_track_info->block_align = wave_descriptor->getBlockAlign();
         if (wave_descriptor->haveSequenceOffset())
             sound_track_info->sequence_offset = wave_descriptor->getSequenceOffset();
         if (wave_descriptor->haveChannelAssignment())
             sound_track_info->channel_assignment = wave_descriptor->getChannelAssignment();
+    } else if (sadm_descriptor) {
+        sound_track_info->isSADMDescriptor = true;
+
+        sound_track_info->mgaSoundEssenceAverageBytesPerSecond = sadm_descriptor->getMGASoundEssenceAverageBytesPerSecond();
+        sound_track_info->mgaSoundEssenceBlockAlign = sadm_descriptor->getMGASoundEssenceBlockAlign();
+        if (sadm_descriptor->haveMGASoundEssenceSequenceOffset()) {
+            BMX_OPT_PROP_SET(sound_track_info->mgaSoundEssenceSequenceOffset, sadm_descriptor->getMGASoundEssenceSequenceOffset());
+        }
     } else {
         if (sound_track_info->channel_count > 0) {
             sound_track_info->block_align = sound_track_info->channel_count *
